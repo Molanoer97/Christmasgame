@@ -1,0 +1,2196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Holiday Family Feud — Interactive TV Game Show</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700;800;900&family=Oswald:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold-light: #fde047;
+      --gold-mid: #eab308;
+      --gold-dark: #a16207;
+      --board-blue: #0a193c;
+      --panel-blue: #1e3a8a;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      user-select: none;
+      overflow-x: hidden;
+      background-color: #020617;
+      color: #ffffff;
+    }
+
+    .font-display {
+      font-family: 'Oswald', Impact, sans-serif;
+      letter-spacing: 0.03em;
+    }
+
+    .font-score {
+      font-family: 'Anton', Impact, sans-serif;
+      letter-spacing: 0.04em;
+    }
+
+    /* Classic Family Feud Dotted Lightbulb Frame */
+    .feud-frame {
+      background: radial-gradient(circle at 50% 35%, #172e6b 0%, #071029 100%);
+      box-shadow:
+        0 0 0 5px #713f12,
+        0 0 0 10px #facc15,
+        0 0 0 14px #854d0e,
+        0 25px 60px rgba(0, 0, 0, 0.75);
+      position: relative;
+    }
+
+    .marquee-border {
+      background-image: radial-gradient(#fef08a 28%, transparent 32%);
+      background-size: 22px 22px;
+      animation: marqueePulse 1.6s infinite alternate ease-in-out;
+    }
+
+    @keyframes marqueePulse {
+      0% { opacity: 0.45; }
+      100% { opacity: 1; }
+    }
+
+    /* 3D Flip Card Mechanics for Answer Slots */
+    .flip-card {
+      perspective: 1200px;
+      height: 64px;
+    }
+
+    @media (min-width: 1024px) {
+      .flip-card {
+        height: 74px;
+      }
+    }
+
+    .flip-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+      transform-style: preserve-3d;
+    }
+
+    .flip-card.revealed .flip-card-inner {
+      transform: rotateX(180deg);
+    }
+
+    .flip-front, .flip-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Unrevealed Blue Numbered Tile */
+    .flip-front {
+      background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 48%, #1e3a8a 100%);
+      border: 3px solid #93c5fd;
+      box-shadow: inset 0 2px 8px rgba(255,255,255,0.35), 0 4px 10px rgba(0,0,0,0.45);
+      justify-content: center;
+    }
+
+    /* Revealed Answer Tile */
+    .flip-back {
+      background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+      border: 3px solid #facc15;
+      box-shadow: inset 0 0 18px rgba(250, 204, 21, 0.25), 0 4px 12px rgba(0,0,0,0.5);
+      transform: rotateX(180deg);
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    /* Empty Unused Slot */
+    .empty-slot {
+      height: 64px;
+      background: linear-gradient(180deg, #0b1736 0%, #070e24 100%);
+      border: 2px solid #1e3a8a;
+      border-radius: 12px;
+      box-shadow: inset 0 4px 12px rgba(0,0,0,0.65);
+    }
+
+    @media (min-width: 1024px) {
+      .empty-slot {
+        height: 74px;
+      }
+    }
+
+    /* Question Reveal Pop Animation */
+    @keyframes questionReveal {
+      0% { transform: scale(0.96); opacity: 0.35; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .question-revealed-anim {
+      animation: questionReveal 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Giant Red Strike X Animation */
+    @keyframes strikePop {
+      0% { transform: scale(0.2) rotate(-12deg); opacity: 0; }
+      55% { transform: scale(1.12) rotate(3deg); opacity: 1; }
+      75% { transform: scale(0.96) rotate(-1deg); }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    .strike-x-box {
+      animation: strikePop 0.36s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+      box-shadow: 0 0 45px rgba(220, 38, 38, 0.95), inset 0 0 20px rgba(255, 255, 255, 0.4);
+    }
+
+    /* Subtle Falling Snowflakes & Confetti */
+    .snowflake {
+      position: fixed;
+      top: -20px;
+      color: rgba(255, 255, 255, 0.22);
+      pointer-events: none;
+      z-index: 1;
+      animation: fall linear infinite;
+    }
+
+    .confetti-piece {
+      position: fixed;
+      top: -15px;
+      width: 10px;
+      height: 16px;
+      pointer-events: none;
+      z-index: 35;
+      animation: confettiFall linear infinite;
+    }
+
+    @keyframes fall {
+      to { transform: translateY(105vh) rotate(360deg); }
+    }
+
+    @keyframes confettiFall {
+      0% { transform: translateY(-10vh) rotate(0deg) scale(1); opacity: 1; }
+      100% { transform: translateY(108vh) rotate(720deg) scale(0.9); opacity: 0.85; }
+    }
+
+    /* CSS Theater Mode (Works even inside sandboxed iframes!) */
+    body.theater-mode #topNavBar,
+    body.theater-mode #presenterDock {
+      display: none !important;
+    }
+    body.theater-mode #audienceStage {
+      min-height: 100vh !important;
+      height: 100vh !important;
+      padding: 1rem !important;
+    }
+    body.theater-mode #exitTheaterPill {
+      display: flex !important;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen flex flex-col">
+
+  <!-- Decorative Snow & Confetti Containers -->
+  <div id="snowContainer" aria-hidden="true"></div>
+  <div id="confettiContainer" aria-hidden="true"></div>
+
+  <!-- Subtle Floating Exit Theater Mode Pill (Visible on hover in Theater Mode) -->
+  <div id="exitTheaterPill" class="hidden fixed top-3 right-3 z-50 opacity-20 hover:opacity-100 transition-opacity duration-300">
+    <button id="btnExitTheater" type="button" class="bg-slate-900/90 hover:bg-slate-800 text-amber-300 border border-amber-400/50 text-xs font-bold px-3.5 py-2 rounded-full shadow-xl backdrop-blur-md cursor-pointer">
+      ✕ Exit Clean Screen (Esc)
+    </button>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- UNIFIED TOP TOOLBAR (MODE SWITCHER, FULLSCREEN & POP-OUT CONTROLS)    -->
+  <!-- ===================================================================== -->
+  <nav id="topNavBar" class="relative z-40 bg-slate-900/95 border-b border-slate-800 px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2 shadow-xl backdrop-blur-md">
+    <div class="flex items-center gap-2.5">
+      <span class="text-xl">🎄</span>
+      <span class="font-display text-lg font-bold tracking-wider text-amber-400 uppercase">Holiday Family Feud</span>
+      <span id="stageStatusBadge" class="hidden sm:inline-flex items-center gap-1.5 bg-slate-800 border border-slate-700 text-amber-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+        🎬 Start Screen
+      </span>
+    </div>
+
+    <!-- Layout & Window Mode Buttons -->
+    <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+      <button id="btnModeSplit" type="button" class="bg-amber-400 text-slate-950 font-extrabold text-xs px-3 py-2 rounded-xl shadow transition cursor-pointer flex items-center gap-1.5">
+        <span>🎛️ Split View (Show + Host)</span>
+      </button>
+
+      <button id="btnModeAudience" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs px-3 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5">
+        <span>📺 Audience Board Only</span>
+      </button>
+
+      <button id="btnPopoutPresenter" type="button" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-3 py-2 rounded-xl shadow transition cursor-pointer flex items-center gap-1.5">
+        <span>🪟 Pop Out Presenter Window</span>
+      </button>
+
+      <button id="btnToggleFullscreen" type="button" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-2 rounded-xl shadow transition cursor-pointer flex items-center gap-1.5">
+        <span>⛶ Clean Fullscreen</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Toast Banner for Helpful Feedback -->
+  <div id="toastBanner" class="hidden fixed bottom-4 right-4 z-50 max-w-md bg-slate-900 border-2 border-amber-400 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-start gap-3">
+    <span class="text-xl">💡</span>
+    <div class="text-xs leading-relaxed flex-1" id="toastMessage"></div>
+    <button id="btnCloseToast" type="button" class="text-slate-400 hover:text-white font-bold text-base leading-none cursor-pointer">&times;</button>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MAIN WORKSPACE: AUDIENCE STAGE + DOCKED PRESENTER CONTROLS            -->
+  <!-- ===================================================================== -->
+  <div class="flex-1 flex flex-col xl:flex-row overflow-hidden">
+
+    <!-- LEFT / TOP: AUDIENCE SHOW STAGE (4 SCREENS: START, VIDEO, BOARD, WINNER) -->
+    <section id="audienceStage" class="flex-1 flex flex-col justify-between relative overflow-y-auto bg-gradient-to-b from-[#060d24] via-[#0c1e4a] to-[#050a1c] p-3 sm:p-5">
+
+      <!-- ================================================================= -->
+      <!-- SCREEN 1: FESTIVE START / TITLE SCREEN                            -->
+      <!-- ================================================================= -->
+      <div id="screenStart" class="relative z-10 flex-1 flex flex-col items-center justify-center max-w-4xl w-full mx-auto my-auto py-4">
+        <div class="w-full feud-frame rounded-3xl p-6 sm:p-10 text-center">
+          <div class="absolute inset-2.5 rounded-2xl border-2 border-dashed border-amber-300/40 pointer-events-none marquee-border"></div>
+
+          <div class="relative z-10 space-y-5">
+            <div class="inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-red-700/90 border-2 border-amber-300 shadow-lg">
+              <span>🎄</span>
+              <span id="audEventSubtitle" class="font-display text-xs sm:text-sm uppercase tracking-[0.2em] text-amber-100 font-bold">
+                ANNUAL HOLIDAY PARTY EDITION
+              </span>
+              <span>🎅</span>
+            </div>
+
+            <h1 class="font-display text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-b from-amber-100 via-yellow-400 to-amber-600 drop-shadow-[0_6px_18px_rgba(234,179,8,0.5)] leading-none">
+              HOLIDAY<br/>FAMILY FEUD
+            </h1>
+
+            <!-- Team Matchup Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-3 max-w-2xl mx-auto pt-2">
+              <div class="bg-gradient-to-b from-blue-800/90 to-blue-950 border-3 border-amber-400 rounded-2xl p-4 shadow-xl">
+                <div class="text-[11px] uppercase tracking-widest text-blue-300 font-bold mb-1">Team 1</div>
+                <div id="startTeam1Name" class="font-display text-xl sm:text-2xl font-extrabold text-white truncate">
+                  Santa's Elves
+                </div>
+              </div>
+
+              <div class="font-score text-3xl sm:text-4xl text-amber-400 drop-shadow">
+                VS
+              </div>
+
+              <div class="bg-gradient-to-b from-red-800/90 to-red-950 border-3 border-amber-400 rounded-2xl p-4 shadow-xl">
+                <div class="text-[11px] uppercase tracking-widest text-red-300 font-bold mb-1">Team 2</div>
+                <div id="startTeam2Name" class="font-display text-xl sm:text-2xl font-extrabold text-white truncate">
+                  Reindeer Games
+                </div>
+              </div>
+            </div>
+
+            <!-- Start Show Button -->
+            <div class="pt-3">
+              <button id="btnAudStartShow" type="button" class="bg-gradient-to-b from-amber-300 via-amber-400 to-amber-500 hover:from-amber-200 hover:to-amber-400 active:scale-95 text-slate-950 font-display text-xl sm:text-2xl font-black uppercase tracking-wider px-8 py-4 rounded-2xl border-2 border-white shadow-[0_0_35px_rgba(250,204,21,0.65)] transition cursor-pointer">
+                🎬 Start The Show!
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- SCREEN 2: INTRO VIDEO STAGE                                       -->
+      <!-- ================================================================= -->
+      <div id="screenIntroVideo" class="hidden relative z-10 flex-1 flex flex-col items-center justify-center max-w-5xl w-full mx-auto my-auto py-3">
+        <div class="w-full feud-frame rounded-3xl p-4 sm:p-6 flex flex-col items-center">
+          <div class="flex items-center justify-between w-full mb-3 px-1">
+            <span class="font-display text-lg sm:text-xl uppercase tracking-wider text-amber-300 font-bold">
+              🎬 Holiday Family Feud — Opening Intro
+            </span>
+            <button id="btnAudSkipIntro" type="button" class="bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs sm:text-sm px-4 py-2 rounded-xl shadow-lg cursor-pointer">
+              ⏭️ Continue to Round 1
+            </button>
+          </div>
+
+          <!-- Video Player Container -->
+          <div id="introVideoWrapper" class="w-full aspect-video bg-black rounded-2xl overflow-hidden border-2 border-amber-400/70 shadow-2xl flex items-center justify-center relative">
+            <video id="introHtml5Video" class="hidden w-full h-full object-contain bg-black" controls playsinline></video>
+            <iframe id="introYoutubeFrame" class="hidden w-full h-full" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+            <!-- Fallback Animated Intro Slate if No Video File/URL is Set -->
+            <div id="introFallbackSlate" class="text-center p-6 space-y-4">
+              <div class="text-5xl sm:text-6xl animate-bounce">🎄🎺🎅</div>
+              <h2 class="font-display text-3xl sm:text-5xl font-black uppercase text-amber-400">
+                Welcome to Holiday Family Feud!
+              </h2>
+              <p class="text-sm sm:text-base text-slate-300 max-w-md mx-auto">
+                No intro video file or link is currently loaded. Upload an MP4 or paste a video link in the Host Panel, or jump straight into Round 1!
+              </p>
+              <button id="btnFallbackPlayTheme" type="button" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow cursor-pointer">
+                🔊 Play Theme Music
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- SCREEN 3: MAIN GAME BOARD                                         -->
+      <!-- ================================================================= -->
+      <div id="screenGameBoard" class="hidden relative z-10 flex-1 flex flex-col justify-between">
+        <!-- Show Title & Round Banner -->
+        <header class="text-center mb-2">
+          <div class="inline-flex items-center gap-2.5 px-5 py-1 rounded-full bg-gradient-to-r from-red-700 via-red-600 to-red-700 border-2 border-amber-300 shadow-lg mb-1">
+            <span class="text-xs sm:text-sm">🎅</span>
+            <span id="audRoundLabel" class="font-display text-xs sm:text-base uppercase tracking-widest text-amber-100 font-bold">
+              ROUND 1 • SINGLE POINTS
+            </span>
+            <span class="text-xs sm:text-sm">❄️</span>
+          </div>
+          <h1 class="font-display text-2xl sm:text-4xl lg:text-5xl font-extrabold uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-yellow-400 to-amber-600 drop-shadow-[0_4px_12px_rgba(234,179,8,0.45)]">
+            HOLIDAY FAMILY FEUD
+          </h1>
+        </header>
+
+        <!-- Center Stage: Team 1 | Game Board | Team 2 -->
+        <main class="flex-1 flex flex-col lg:flex-row items-center justify-center gap-3 lg:gap-5 max-w-6xl w-full mx-auto my-1">
+
+          <!-- TEAM 1 PODIUM -->
+          <div class="w-full lg:w-44 order-2 lg:order-1 bg-gradient-to-b from-blue-900/90 to-slate-950/95 border-4 border-amber-400 rounded-2xl p-3 text-center shadow-2xl">
+            <div class="text-[11px] uppercase tracking-widest text-amber-300 font-bold mb-0.5">Team 1</div>
+            <div id="audTeam1Name" class="font-display text-lg sm:text-xl font-bold text-white truncate mb-2">
+              Santa's Elves
+            </div>
+            <div class="bg-black/80 border-2 border-amber-500/60 rounded-xl py-2.5 px-2 shadow-inner">
+              <div id="audTeam1Score" class="font-score text-4xl sm:text-5xl text-amber-400 leading-none">
+                0
+              </div>
+            </div>
+          </div>
+
+          <!-- CENTER GAME BOARD -->
+          <div class="w-full max-w-3xl order-1 lg:order-2 feud-frame rounded-3xl p-4 sm:p-6">
+            <div class="absolute inset-2 rounded-2xl border-2 border-dashed border-amber-300/40 pointer-events-none marquee-border"></div>
+
+            <!-- Round Pot & Survey Question Prompt -->
+            <div class="relative z-10 flex flex-col items-center mb-4">
+              <div class="flex items-center gap-2.5 mb-2.5">
+                <div class="bg-gradient-to-b from-slate-900 to-black border-4 border-amber-400 rounded-2xl px-7 py-1.5 shadow-[0_0_25px_rgba(250,204,21,0.4)] flex flex-col items-center">
+                  <span class="text-[10px] uppercase tracking-[0.25em] text-amber-300 font-bold">Round Pot</span>
+                  <span id="audRoundBank" class="font-score text-4xl sm:text-5xl text-white tracking-wider leading-tight">
+                    0
+                  </span>
+                </div>
+
+                <!-- Glowing 2X / 3X Multiplier Badge -->
+                <div id="audMultiplierPill" class="hidden bg-gradient-to-b from-amber-300 to-amber-500 text-slate-950 border-2 border-white rounded-2xl px-3.5 py-2 shadow-[0_0_20px_rgba(250,204,21,0.65)] text-center animate-pulse">
+                  <div id="audMultiplierValue" class="font-score text-2xl sm:text-3xl leading-none">2X</div>
+                  <div class="text-[9px] font-black uppercase tracking-wider">Points!</div>
+                </div>
+              </div>
+
+              <!-- SURVEY QUESTION PROMPT BOX (HIDDEN UNTIL HOST CLICKS SHOW QUESTION) -->
+              <div id="audQuestionBox" class="w-full rounded-xl px-4 py-3 text-center shadow-inner min-h-[62px] flex items-center justify-center transition-all duration-300 bg-blue-950/90 border-2 border-blue-400/50">
+                <!-- Revealed Question State -->
+                <p id="audQuestionText" class="hidden text-base sm:text-xl font-bold text-white leading-snug">
+                  Name something people commonly lie about during the holidays.
+                </p>
+
+                <!-- Dramatic Hidden / Face-Off Cover State -->
+                <div id="audQuestionHiddenCover" class="flex items-center justify-center gap-2.5 text-amber-300">
+                  <span class="text-lg">🎙️</span>
+                  <span class="font-display text-sm sm:text-lg uppercase tracking-[0.18em] font-bold">
+                    Survey Question Ready • Listen to Host!
+                  </span>
+                  <span class="text-lg">🔔</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 8-Slot Answer Grid -->
+            <div id="audBoardGrid" class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3.5">
+              <!-- Populated dynamically via JS -->
+            </div>
+
+            <!-- GIANT STRIKE OVERLAY (1, 2, or 3 RED X's) -->
+            <div id="audStrikeOverlay" class="hidden fixed inset-0 z-50 pointer-events-none flex items-center justify-center bg-black/50 backdrop-blur-[2px]">
+              <div id="audStrikeContainer" class="flex items-center justify-center gap-4 sm:gap-8 px-4"></div>
+            </div>
+          </div>
+
+          <!-- TEAM 2 PODIUM -->
+          <div class="w-full lg:w-44 order-3 bg-gradient-to-b from-red-900/90 to-slate-950/95 border-4 border-amber-400 rounded-2xl p-3 text-center shadow-2xl">
+            <div class="text-[11px] uppercase tracking-widest text-amber-300 font-bold mb-0.5">Team 2</div>
+            <div id="audTeam2Name" class="font-display text-lg sm:text-xl font-bold text-white truncate mb-2">
+              Reindeer Games
+            </div>
+            <div class="bg-black/80 border-2 border-amber-500/60 rounded-xl py-2.5 px-2 shadow-inner">
+              <div id="audTeam2Score" class="font-score text-4xl sm:text-5xl text-amber-400 leading-none">
+                0
+              </div>
+            </div>
+          </div>
+
+        </main>
+
+        <!-- Subtle Keyboard Shortcut Legend -->
+        <footer class="text-center text-[11px] text-blue-300/60 mt-2">
+          Shortcuts: <kbd class="px-1.5 py-0.5 bg-slate-800/80 rounded text-slate-200">Q</kbd> Show/Hide Question •
+          <kbd class="px-1.5 py-0.5 bg-slate-800/80 rounded text-slate-200">1–8</kbd> Reveal Answer •
+          <kbd class="px-1.5 py-0.5 bg-slate-800/80 rounded text-slate-200">X</kbd> Strike •
+          <kbd class="px-1.5 py-0.5 bg-slate-800/80 rounded text-slate-200">F</kbd> Clean Fullscreen
+        </footer>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- SCREEN 4: GRAND FINALE / WINNER CELEBRATION SCREEN                -->
+      <!-- ================================================================= -->
+      <div id="screenWinner" class="hidden relative z-10 flex-1 flex flex-col items-center justify-center max-w-4xl w-full mx-auto my-auto py-4">
+        <div class="w-full feud-frame rounded-3xl p-6 sm:p-10 text-center">
+          <div class="absolute inset-2.5 rounded-2xl border-2 border-dashed border-amber-300/60 pointer-events-none marquee-border"></div>
+
+          <div class="relative z-10 space-y-5">
+            <div class="text-5xl sm:text-7xl animate-bounce">🏆🎉🎄</div>
+
+            <div id="winBadgeText" class="inline-block px-5 py-1 rounded-full bg-amber-400 text-slate-950 font-display text-sm sm:text-base font-black uppercase tracking-[0.2em] shadow-lg">
+              HOLIDAY FAMILY FEUD CHAMPIONS!
+            </div>
+
+            <h1 id="winChampionName" class="font-display text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-b from-amber-100 via-yellow-300 to-amber-500 drop-shadow-[0_6px_18px_rgba(250,204,21,0.6)]">
+              SANTA'S ELVES
+            </h1>
+
+            <!-- Final Score Comparison -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto pt-2">
+              <div id="winCardT1" class="bg-blue-950/90 border-4 border-amber-400 rounded-2xl p-4 shadow-xl">
+                <div id="winT1Label" class="font-display text-lg font-bold text-white truncate">Santa's Elves</div>
+                <div id="winT1FinalScore" class="font-score text-5xl text-amber-400 mt-1">0</div>
+              </div>
+              <div id="winCardT2" class="bg-red-950/90 border-4 border-slate-700 rounded-2xl p-4 shadow-xl">
+                <div id="winT2Label" class="font-display text-lg font-bold text-white truncate">Reindeer Games</div>
+                <div id="winT2FinalScore" class="font-score text-5xl text-amber-400 mt-1">0</div>
+              </div>
+            </div>
+
+            <div class="pt-3 flex flex-wrap items-center justify-center gap-3">
+              <button id="btnWinReplayFanfare" type="button" class="bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-sm px-5 py-3 rounded-xl shadow-lg cursor-pointer">
+                🎺 Play Victory Fanfare
+              </button>
+              <button id="btnWinBackToBoard" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-bold text-sm px-5 py-3 rounded-xl cursor-pointer">
+                ↩ Back to Game Board
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- RIGHT / BOTTOM: BUILT-IN PRESENTER CONTROL DOCK                     -->
+    <!-- =================================================================== -->
+    <aside id="presenterDock" class="w-full xl:w-[475px] 2xl:w-[520px] bg-slate-900 border-t xl:border-t-0 xl:border-l border-slate-800 flex flex-col max-h-[85vh] xl:max-h-[calc(100vh-53px)] overflow-y-auto p-4 space-y-3.5 shadow-2xl z-20">
+
+      <!-- Presenter Header & Quick Actions -->
+      <div class="flex items-center justify-between gap-2 pb-2 border-b border-slate-800">
+        <div>
+          <h2 class="text-base font-extrabold text-white flex items-center gap-1.5">
+            <span>🎙️</span> Host Control Panel
+          </h2>
+          <p class="text-[11px] text-slate-400">Read question aloud, then reveal it on screen</p>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button id="btnOpenEditor" type="button" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-2 rounded-xl shadow transition cursor-pointer">
+            ✏️ Edit Questions
+          </button>
+          <button id="btnResetMatch" type="button" class="bg-slate-800 hover:bg-rose-900/80 text-slate-300 hover:text-rose-200 border border-slate-700 text-xs font-bold px-2.5 py-2 rounded-xl transition cursor-pointer" title="Reset Match to Start Screen">
+            ↺ Reset
+          </button>
+        </div>
+      </div>
+
+      <!-- SHOW FLOW / SCREEN SWITCHER -->
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Show Stage Flow</span>
+          <button id="btnOpenVideoSetup" type="button" class="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 cursor-pointer">
+            🎞️ Configure Intro Video
+          </button>
+        </div>
+        <div class="grid grid-cols-4 gap-1.5">
+          <button id="btnStageStart" type="button" class="stage-nav-btn bg-amber-400 text-slate-950 font-extrabold text-[11px] py-2 px-1.5 rounded-lg cursor-pointer">
+            1. Start
+          </button>
+          <button id="btnStageIntro" type="button" class="stage-nav-btn bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[11px] py-2 px-1.5 rounded-lg cursor-pointer">
+            2. Intro Vid
+          </button>
+          <button id="btnStageBoard" type="button" class="stage-nav-btn bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[11px] py-2 px-1.5 rounded-lg cursor-pointer">
+            3. Game Board
+          </button>
+          <button id="btnStageWinner" type="button" class="stage-nav-btn bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-[11px] py-2 px-1.5 rounded-lg cursor-pointer">
+            4. 🏆 Finale
+          </button>
+        </div>
+      </div>
+
+      <!-- ROUND SELECTOR, MULTIPLIER (1X / 2X / 3X) & PROMINENT SHOW QUESTION BUTTON -->
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2.5">
+        <div class="flex items-center justify-between gap-2">
+          <div id="presRoundTabs" class="flex flex-wrap items-center gap-1.5">
+            <!-- Round buttons injected here -->
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            <button id="btnPrevRound" type="button" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-700 cursor-pointer" title="Previous Round">◀</button>
+            <button id="btnNextRound" type="button" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-700 cursor-pointer" title="Next Round">▶</button>
+          </div>
+        </div>
+
+        <!-- Quick Multiplier Toggle Bar (1x / 2x Double / 3x Triple) -->
+        <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
+          <span class="text-[11px] font-bold text-slate-400">Round Multiplier:</span>
+          <div class="flex items-center gap-1">
+            <button type="button" data-mult="1" class="pres-mult-btn px-2.5 py-1 rounded-lg text-xs font-extrabold cursor-pointer bg-slate-800 text-slate-300">1x</button>
+            <button type="button" data-mult="2" class="pres-mult-btn px-2.5 py-1 rounded-lg text-xs font-extrabold cursor-pointer bg-slate-800 text-slate-300">2x DOUBLE</button>
+            <button type="button" data-mult="3" class="pres-mult-btn px-2.5 py-1 rounded-lg text-xs font-extrabold cursor-pointer bg-slate-800 text-slate-300">3x TRIPLE</button>
+          </div>
+        </div>
+
+        <!-- HOST SCRIPT BOX + PROMINENT SHOW/HIDE QUESTION BUTTON -->
+        <div class="pt-2 border-t border-slate-800/80 space-y-2">
+          <div class="bg-slate-900 border border-slate-700/80 rounded-xl p-2.5">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-400">Host Script (Always Visible to You)</span>
+              <span id="presQStatusBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/40">
+                🙈 Hidden from Audience
+              </span>
+            </div>
+            <p class="text-xs sm:text-sm text-white font-bold leading-snug" id="presQuestionPreview">
+              Round 1 Question
+            </p>
+          </div>
+
+          <button id="btnToggleQuestion" type="button" class="w-full bg-amber-400 hover:bg-amber-300 active:scale-[0.99] text-slate-950 text-xs sm:text-sm font-black py-2.5 px-3 rounded-xl shadow-lg transition cursor-pointer flex items-center justify-center gap-2">
+            👁️ Show Question on Audience Screen
+          </button>
+        </div>
+      </div>
+
+      <!-- ANSWER KEY & REVEAL BUTTONS -->
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-extrabold uppercase tracking-wider text-slate-400">Survey Answer Key</span>
+          <div class="flex items-center gap-1.5">
+            <button id="btnRevealAll" type="button" class="bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg cursor-pointer">
+              Reveal All
+            </button>
+            <button id="btnHideAll" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-slate-700 cursor-pointer">
+              Clear Board
+            </button>
+          </div>
+        </div>
+
+        <div id="presAnswersList" class="space-y-1.5">
+          <!-- Answer key rows injected here -->
+        </div>
+
+        <!-- Award Pot Bar -->
+        <div class="pt-2.5 mt-2 border-t border-slate-800 flex flex-col gap-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400 font-semibold">Current Round Pot:</span>
+            <span class="font-black text-base text-amber-400"><span id="presRoundBank">0</span> pts <span id="presMultNote" class="text-[11px] font-normal text-slate-400">(1x)</span></span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btnAwardTeam1" type="button" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold text-xs py-2.5 px-2 rounded-xl shadow transition cursor-pointer truncate">
+              🏆 Award to <span id="lblAwardT1">Team 1</span>
+            </button>
+            <button id="btnAwardTeam2" type="button" class="bg-red-600 hover:bg-red-500 active:scale-95 text-white font-bold text-xs py-2.5 px-2 rounded-xl shadow transition cursor-pointer truncate">
+              🏆 Award to <span id="lblAwardT2">Team 2</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STRIKES (RED X BUZZER) -->
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-extrabold uppercase tracking-wider text-slate-400">Strikes (Red X Buzzer)</span>
+          <span id="presStrikeBadge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">0 Strikes</span>
+        </div>
+        <div class="grid grid-cols-4 gap-1.5">
+          <button id="btnStrikeNext" type="button" class="col-span-1 bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-black py-2.5 rounded-xl text-xs shadow transition cursor-pointer">
+            +1 X
+          </button>
+          <button id="btnStrike1" type="button" class="bg-red-600 hover:bg-red-500 active:scale-95 text-white font-black py-2.5 rounded-xl text-xs shadow transition cursor-pointer">
+            ✖
+          </button>
+          <button id="btnStrike2" type="button" class="bg-red-600 hover:bg-red-500 active:scale-95 text-white font-black py-2.5 rounded-xl text-xs shadow transition cursor-pointer">
+            ✖✖
+          </button>
+          <button id="btnStrike3" type="button" class="bg-red-700 hover:bg-red-600 active:scale-95 text-white font-black py-2.5 rounded-xl text-xs shadow transition cursor-pointer">
+            ✖✖✖
+          </button>
+        </div>
+        <div class="flex items-center justify-between gap-2 pt-1">
+          <button id="btnClearStrikes" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold px-3 py-1.5 rounded-lg border border-slate-700 cursor-pointer">
+            Clear Overlay
+          </button>
+          <label class="flex items-center gap-1.5 text-[11px] text-slate-400 cursor-pointer">
+            <input id="chkAutoHideStrike" type="checkbox" checked class="accent-amber-400" />
+            <span>Auto-hide X (2.2s)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- TEAM NAMES & MANUAL SCORE ADJUST -->
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+        <span class="text-xs font-extrabold uppercase tracking-wider text-slate-400 block">Teams & Scoreboard</span>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="bg-blue-950/30 border border-blue-900/60 rounded-xl p-2.5">
+            <input id="inpTeam1Name" type="text" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-bold text-white mb-2 focus:outline-none focus:border-amber-400" />
+            <div class="flex items-center justify-between">
+              <span id="presT1Score" class="text-lg font-black text-amber-400">0</span>
+              <div class="flex gap-1">
+                <button id="btnT1Minus" type="button" class="bg-slate-800 hover:bg-slate-700 px-2 py-0.5 rounded text-xs font-bold cursor-pointer">-10</button>
+                <button id="btnT1Plus" type="button" class="bg-slate-800 hover:bg-slate-700 px-2 py-0.5 rounded text-xs font-bold cursor-pointer">+10</button>
+              </div>
+            </div>
+          </div>
+          <div class="bg-red-950/30 border border-red-900/60 rounded-xl p-2.5">
+            <input id="inpTeam2Name" type="text" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-bold text-white mb-2 focus:outline-none focus:border-amber-400" />
+            <div class="flex items-center justify-between">
+              <span id="presT2Score" class="text-lg font-black text-amber-400">0</span>
+              <div class="flex gap-1">
+                <button id="btnT2Minus" type="button" class="bg-slate-800 hover:bg-slate-700 px-2 py-0.5 rounded text-xs font-bold cursor-pointer">-10</button>
+                <button id="btnT2Plus" type="button" class="bg-slate-800 hover:bg-slate-700 px-2 py-0.5 rounded text-xs font-bold cursor-pointer">+10</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SOUNDBOARD -->
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+        <span class="text-xs font-extrabold uppercase tracking-wider text-slate-400 block">🔊 Game Show Soundboard</span>
+        <div class="grid grid-cols-3 gap-1.5">
+          <button id="btnSndTheme" type="button" class="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-200 text-[11px] font-bold py-2 rounded-lg cursor-pointer">
+            🎺 Theme
+          </button>
+          <button id="btnSndFaceoff" type="button" class="bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-400/50 text-indigo-200 text-[11px] font-bold py-2 rounded-lg cursor-pointer">
+            🔔 Face-Off
+          </button>
+          <button id="btnSndDing" type="button" class="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/50 text-emerald-200 text-[11px] font-bold py-2 rounded-lg cursor-pointer">
+            ✨ Ding!
+          </button>
+          <button id="btnSndBuzzer" type="button" class="bg-red-500/20 hover:bg-red-500/30 border border-red-400/50 text-red-200 text-[11px] font-bold py-2 rounded-lg cursor-pointer">
+            🚨 Buzzer
+          </button>
+          <button id="btnSndWin" type="button" class="col-span-2 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-400/50 text-yellow-200 text-[11px] font-bold py-2 rounded-lg cursor-pointer">
+            🎉 Win Fanfare
+          </button>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: INTRO VIDEO & EVENT SUBTITLE SETUP                             -->
+  <!-- ===================================================================== -->
+  <div id="videoModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-lg font-extrabold text-white">🎬 Intro Video & Start Screen Setup</h3>
+          <p class="text-xs text-slate-400">Plays right after clicking "Start The Show!"</p>
+        </div>
+        <button id="btnCloseVideoX" type="button" class="text-slate-400 hover:text-white text-2xl leading-none cursor-pointer">&times;</button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs font-bold text-slate-300 block mb-1">Start Screen Subtitle</label>
+          <input id="inpEventSubtitle" type="text" placeholder="ANNUAL HOLIDAY PARTY EDITION" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400" />
+        </div>
+
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+          <label class="text-xs font-bold text-amber-300 block">Option 1: Upload Video File from Computer (.mp4, .webm)</label>
+          <input id="inpVideoFile" type="file" accept="video/*" class="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer" />
+          <p id="lblSelectedFile" class="text-[11px] text-emerald-400 hidden"></p>
+        </div>
+
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+          <label class="text-xs font-bold text-amber-300 block">Option 2: Paste YouTube or Direct MP4 Link</label>
+          <input id="inpVideoUrl" type="url" placeholder="https://www.youtube.com/watch?v=... or https://.../intro.mp4" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400" />
+        </div>
+
+        <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer pt-1">
+          <input id="chkEnableIntroStage" type="checkbox" checked class="accent-amber-400" />
+          <span>Show Intro Video stage when clicking "Start The Show!"</span>
+        </label>
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-slate-800">
+        <button id="btnClearVideo" type="button" class="text-xs text-rose-400 hover:text-rose-300 font-semibold cursor-pointer">
+          Clear Video
+        </button>
+        <div class="flex gap-2">
+          <button id="btnCancelVideo" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 cursor-pointer">
+            Cancel
+          </button>
+          <button id="btnSaveVideo" type="button" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl shadow cursor-pointer">
+            💾 Save Video Settings
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: CUSTOM QUESTION & ROUND EDITOR                                 -->
+  <!-- ===================================================================== -->
+  <div id="editorModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl">
+      <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <h2 class="text-lg sm:text-xl font-extrabold text-white">Customize Rounds & Survey Questions</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Edit your 3–4 rounds below. Leave unused answer rows blank (up to 8 per round).</p>
+        </div>
+        <button id="btnCloseEditorX" type="button" class="text-slate-400 hover:text-white text-2xl leading-none px-2 cursor-pointer">&times;</button>
+      </div>
+
+      <div id="editorRoundsContainer" class="p-4 sm:p-5 overflow-y-auto space-y-5 flex-1">
+        <!-- Round editors injected dynamically -->
+      </div>
+
+      <div class="p-4 border-t border-slate-800 bg-slate-950/70 rounded-b-2xl flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <button id="btnAddRound" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3 py-2 rounded-xl border border-slate-700 cursor-pointer">
+            + Add Round
+          </button>
+          <button id="btnRestoreDefaults" type="button" class="bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-bold px-3 py-2 rounded-xl border border-slate-700 cursor-pointer">
+            🎄 Restore Sample Holiday Questions
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btnCancelEditor" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 cursor-pointer">
+            Cancel
+          </button>
+          <button id="btnSaveEditor" type="button" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg cursor-pointer">
+            💾 Save & Apply to Game
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: CUSTOM CONFIRMATION DIALOG (NO NATIVE ALERT/CONFIRM)           -->
+  <!-- ===================================================================== -->
+  <div id="confirmModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+      <h3 id="confirmTitle" class="text-lg font-bold text-white mb-2">Confirm Action</h3>
+      <p id="confirmMessage" class="text-sm text-slate-300 mb-5">Are you sure?</p>
+      <div class="flex justify-end gap-2">
+        <button id="btnCancelConfirm" type="button" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 cursor-pointer">
+          Cancel
+        </button>
+        <button id="btnAcceptConfirm" type="button" class="bg-red-600 hover:bg-red-500 text-white text-sm font-bold px-4 py-2 rounded-xl cursor-pointer">
+          Reset Match
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      // =========================================================================
+      // 1. DEFAULT HOLIDAY FAMILY FEUD ROUNDS (4 READY-TO-PLAY ROUNDS)
+      // =========================================================================
+      const DEFAULT_ROUNDS = [
+        {
+          title: "Round 1",
+          multiplier: 1,
+          question: "Name something people commonly lie about during the holidays.",
+          answers: [
+            { text: "Liking a bad gift", points: 34 },
+            { text: "How much they spent", points: 22 },
+            { text: "Being on a diet / calories eaten", points: 16 },
+            { text: "Being busy / sick to skip a party", points: 12 },
+            { text: "How great the cooking tastes", points: 9 },
+            { text: "Finishing their shopping early", points: 7 }
+          ]
+        },
+        {
+          title: "Round 2",
+          multiplier: 2,
+          question: "Name a holiday movie people watch every single year.",
+          answers: [
+            { text: "Home Alone", points: 32 },
+            { text: "Elf", points: 26 },
+            { text: "A Christmas Story", points: 15 },
+            { text: "National Lampoon's Christmas Vacation", points: 11 },
+            { text: "The Grinch", points: 9 },
+            { text: "It's a Wonderful Life", points: 7 }
+          ]
+        },
+        {
+          title: "Round 3",
+          multiplier: 3,
+          question: "Name something that inevitably goes wrong on Christmas morning.",
+          answers: [
+            { text: "Forgot to buy batteries", points: 35 },
+            { text: "Pet / kid knocks over the tree", points: 21 },
+            { text: "Burnt breakfast / dinner", points: 16 },
+            { text: "Wrong gift size / duplicate gift", points: 12 },
+            { text: "Running out of trash bags / tape", points: 9 },
+            { text: "Family argument", points: 7 }
+          ]
+        },
+        {
+          title: "Tie-Breaker",
+          multiplier: 1,
+          question: "Name the #1 most regifted holiday item.",
+          answers: [
+            { text: "Fruitcake / Holiday Treats", points: 36 },
+            { text: "Scented Candles", points: 25 },
+            { text: "Ugly Sweater / Socks", points: 18 },
+            { text: "Coffee Mug", points: 12 },
+            { text: "Wine / Alcohol", points: 9 }
+          ]
+        }
+      ];
+
+      // =========================================================================
+      // 2. SAFE STORAGE & CENTRAL GAME STATE
+      // =========================================================================
+      const STORAGE_KEY_ROUNDS = "holiday_feud_rounds_v3";
+      const STORAGE_KEY_STATE = "holiday_feud_state_v3";
+
+      function safeGetStorage(key) {
+        try {
+          return window.localStorage.getItem(key);
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function safeSetStorage(key, val) {
+        try {
+          window.localStorage.setItem(key, val);
+        } catch (e) {}
+      }
+
+      function loadSavedRounds() {
+        const raw = safeGetStorage(STORAGE_KEY_ROUNDS);
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          } catch (e) {}
+        }
+        return JSON.parse(JSON.stringify(DEFAULT_ROUNDS));
+      }
+
+      // Note: showQuestion defaults to false so questions stay hidden on Audience Board until Host clicks "Show Question"
+      let gameState = {
+        screen: "start", // "start" | "intro" | "board" | "winner"
+        eventSubtitle: "ANNUAL HOLIDAY PARTY EDITION",
+        introVideoUrl: "",
+        introVideoBlobUrl: "",
+        introVideoFileName: "",
+        enableIntroStage: true,
+        team1Name: "Santa's Elves",
+        team2Name: "Reindeer Games",
+        team1Score: 0,
+        team2Score: 0,
+        currentRoundIndex: 0,
+        revealedIndices: [],
+        potAwardedThisRound: false,
+        showQuestion: false,
+        strikes: 0,
+        strikeOverlayVisible: false,
+        viewMode: "split", // "split" | "audience"
+        rounds: loadSavedRounds()
+      };
+
+      const savedStateRaw = safeGetStorage(STORAGE_KEY_STATE);
+      if (savedStateRaw) {
+        try {
+          const parsed = JSON.parse(savedStateRaw);
+          if (parsed && Array.isArray(parsed.rounds) && parsed.rounds.length > 0) {
+            gameState = Object.assign(gameState, parsed);
+            // Blob URLs do not survive full page reloads; clear stale blob URLs
+            gameState.introVideoBlobUrl = "";
+            gameState.introVideoFileName = "";
+            // Always ensure question starts hidden on fresh load
+            gameState.showQuestion = false;
+          }
+        } catch (e) {}
+      }
+
+      let popupPresenterWin = null;
+
+      function updateState(soundToPlay = null) {
+        const persistCopy = Object.assign({}, gameState, { introVideoBlobUrl: "" });
+        safeSetStorage(STORAGE_KEY_STATE, JSON.stringify(persistCopy));
+        renderAll();
+        syncPopupPresenterWindow();
+        if (soundToPlay) {
+          playSoundEffect(soundToPlay);
+        }
+      }
+
+      // =========================================================================
+      // 3. BULLETPROOF WEB AUDIO SYNTHESIZER (ZERO EXTERNAL FILES)
+      // =========================================================================
+      let audioCtx = null;
+
+      function getAudioContext() {
+        if (!audioCtx) {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (Ctx) audioCtx = new Ctx();
+        }
+        if (audioCtx && audioCtx.state === "suspended") {
+          audioCtx.resume().catch(() => {});
+        }
+        return audioCtx;
+      }
+
+      function playSoundEffect(type) {
+        try {
+          const ctx = getAudioContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+
+          if (type === "ding") {
+            const notes = [987.77, 1318.51, 1567.98];
+            notes.forEach((freq, i) => {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = "triangle";
+              osc.frequency.setValueAtTime(freq, now + i * 0.05);
+              gain.gain.setValueAtTime(0.001, now + i * 0.05);
+              gain.gain.exponentialRampToValueAtTime(0.35, now + i * 0.05 + 0.02);
+              gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.05 + 0.85);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(now + i * 0.05);
+              osc.stop(now + i * 0.05 + 0.9);
+            });
+          } else if (type === "buzzer") {
+            [92.5, 98.0, 138.59].forEach((freq) => {
+              const osc = ctx.createOscillator();
+              const filter = ctx.createBiquadFilter();
+              const gain = ctx.createGain();
+              osc.type = "sawtooth";
+              osc.frequency.setValueAtTime(freq, now);
+              filter.type = "lowpass";
+              filter.frequency.setValueAtTime(680, now);
+              gain.gain.setValueAtTime(0.01, now);
+              gain.gain.linearRampToValueAtTime(0.3, now + 0.03);
+              gain.gain.setValueAtTime(0.28, now + 0.55);
+              gain.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+              osc.connect(filter);
+              filter.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(now);
+              osc.stop(now + 0.78);
+            });
+          } else if (type === "faceoff") {
+            [880, 1174.66].forEach((freq, i) => {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = "sine";
+              osc.frequency.setValueAtTime(freq, now + i * 0.14);
+              gain.gain.setValueAtTime(0.01, now + i * 0.14);
+              gain.gain.exponentialRampToValueAtTime(0.35, now + i * 0.14 + 0.02);
+              gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.14 + 0.65);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(now + i * 0.14);
+              osc.stop(now + i * 0.14 + 0.7);
+            });
+          } else if (type === "win") {
+            [
+              { f: 523.25, t: 0.0, d: 0.14 },
+              { f: 659.25, t: 0.14, d: 0.14 },
+              { f: 783.99, t: 0.28, d: 0.14 },
+              { f: 1046.5, t: 0.42, d: 0.55 }
+            ].forEach((n) => {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = "triangle";
+              osc.frequency.setValueAtTime(n.f, now + n.t);
+              gain.gain.setValueAtTime(0.01, now + n.t);
+              gain.gain.linearRampToValueAtTime(0.3, now + n.t + 0.02);
+              gain.gain.exponentialRampToValueAtTime(0.0001, now + n.t + n.d);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(now + n.t);
+              osc.stop(now + n.t + n.d + 0.05);
+            });
+          } else if (type === "theme") {
+            [
+              { f: 392.00, t: 0.00, d: 0.16 },
+              { f: 523.25, t: 0.18, d: 0.16 },
+              { f: 587.33, t: 0.36, d: 0.16 },
+              { f: 659.25, t: 0.54, d: 0.24 },
+              { f: 523.25, t: 0.82, d: 0.16 },
+              { f: 659.25, t: 1.00, d: 0.45 }
+            ].forEach((n) => {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              const filter = ctx.createBiquadFilter();
+              osc.type = "sawtooth";
+              filter.type = "lowpass";
+              filter.frequency.setValueAtTime(1800, now + n.t);
+              osc.frequency.setValueAtTime(n.f, now + n.t);
+              gain.gain.setValueAtTime(0.01, now + n.t);
+              gain.gain.linearRampToValueAtTime(0.24, now + n.t + 0.02);
+              gain.gain.exponentialRampToValueAtTime(0.0001, now + n.t + n.d);
+              osc.connect(filter);
+              filter.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(now + n.t);
+              osc.stop(now + n.t + n.d + 0.04);
+            });
+          }
+        } catch (err) {}
+      }
+
+      // =========================================================================
+      // 4. VIDEO HELPER (YOUTUBE EMBED OR HTML5 VIDEO)
+      // =========================================================================
+      function parseYoutubeEmbedUrl(url) {
+        if (!url) return null;
+        const regExp = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+        const match = url.match(regExp);
+        if (match && match[1]) {
+          return `https://www.youtube.com/embed/${match[1]}?autoplay=1&rel=0`;
+        }
+        return null;
+      }
+
+      function stopIntroVideoPlayback() {
+        const html5Vid = document.getElementById("introHtml5Video");
+        const ytFrame = document.getElementById("introYoutubeFrame");
+        if (html5Vid) {
+          try { html5Vid.pause(); } catch (e) {}
+        }
+        if (ytFrame) {
+          ytFrame.src = "";
+        }
+      }
+
+      function activateIntroVideoStage() {
+        const html5Vid = document.getElementById("introHtml5Video");
+        const ytFrame = document.getElementById("introYoutubeFrame");
+        const fallback = document.getElementById("introFallbackSlate");
+
+        html5Vid.classList.add("hidden");
+        ytFrame.classList.add("hidden");
+        fallback.classList.add("hidden");
+
+        if (gameState.introVideoBlobUrl) {
+          html5Vid.src = gameState.introVideoBlobUrl;
+          html5Vid.classList.remove("hidden");
+          html5Vid.play().catch(() => {});
+        } else if (gameState.introVideoUrl) {
+          const ytEmbed = parseYoutubeEmbedUrl(gameState.introVideoUrl);
+          if (ytEmbed) {
+            ytFrame.src = ytEmbed;
+            ytFrame.classList.remove("hidden");
+          } else {
+            html5Vid.src = gameState.introVideoUrl;
+            html5Vid.classList.remove("hidden");
+            html5Vid.play().catch(() => {});
+          }
+        } else {
+          fallback.classList.remove("hidden");
+          playSoundEffect("theme");
+        }
+      }
+
+      // =========================================================================
+      // 5. CORE GAMEPLAY LOGIC & ACTIONS
+      // =========================================================================
+      function getCurrentRound() {
+        return gameState.rounds[gameState.currentRoundIndex] || gameState.rounds[0];
+      }
+
+      function calculateRoundPot() {
+        const round = getCurrentRound();
+        if (!round) return { raw: 0, total: 0, multiplier: 1 };
+        let raw = 0;
+        gameState.revealedIndices.forEach((idx) => {
+          if (round.answers[idx]) {
+            raw += Number(round.answers[idx].points) || 0;
+          }
+        });
+        const mult = Number(round.multiplier) || 1;
+        return { raw, total: raw * mult, multiplier: mult };
+      }
+
+      let strikeTimer = null;
+
+      const GameActions = {
+        setScreen(screenName) {
+          if (gameState.screen === "intro" && screenName !== "intro") {
+            stopIntroVideoPlayback();
+          }
+          gameState.screen = screenName;
+          if (screenName === "intro") {
+            activateIntroVideoStage();
+            updateState(null);
+          } else if (screenName === "winner") {
+            spawnWinnerConfetti();
+            updateState("win");
+          } else {
+            clearWinnerConfetti();
+            updateState(null);
+          }
+        },
+
+        startShow() {
+          const hasVideo = Boolean(gameState.introVideoBlobUrl || gameState.introVideoUrl);
+          if (gameState.enableIntroStage && hasVideo) {
+            this.setScreen("intro");
+          } else {
+            // Start Round 1 with the question hidden behind the Face-Off cover
+            gameState.showQuestion = false;
+            this.setScreen("board");
+            playSoundEffect("theme");
+          }
+        },
+
+        toggleAnswer(index) {
+          if (gameState.screen !== "board") gameState.screen = "board";
+          const round = getCurrentRound();
+          if (!round || !round.answers[index]) return;
+          const pos = gameState.revealedIndices.indexOf(index);
+          if (pos === -1) {
+            gameState.revealedIndices.push(index);
+            gameState.strikeOverlayVisible = false;
+            updateState("ding");
+          } else {
+            gameState.revealedIndices.splice(pos, 1);
+            updateState(null);
+          }
+        },
+
+        revealAll() {
+          const round = getCurrentRound();
+          if (!round) return;
+          gameState.revealedIndices = round.answers.map((_, idx) => idx);
+          gameState.strikeOverlayVisible = false;
+          updateState("ding");
+        },
+
+        hideAll() {
+          gameState.revealedIndices = [];
+          gameState.potAwardedThisRound = false;
+          gameState.strikes = 0;
+          gameState.strikeOverlayVisible = false;
+          updateState(null);
+        },
+
+        triggerStrike(count) {
+          if (gameState.screen !== "board") gameState.screen = "board";
+          const strikeCount = count === "next" ? Math.min(3, gameState.strikes + 1) : count;
+          gameState.strikes = strikeCount;
+          gameState.strikeOverlayVisible = true;
+          updateState("buzzer");
+
+          if (strikeTimer) clearTimeout(strikeTimer);
+          const autoChk = document.getElementById("chkAutoHideStrike");
+          const shouldAutoHide = !autoChk || autoChk.checked;
+          if (shouldAutoHide) {
+            strikeTimer = setTimeout(() => {
+              gameState.strikeOverlayVisible = false;
+              updateState(null);
+            }, 2200);
+          }
+        },
+
+        clearStrikes() {
+          if (strikeTimer) clearTimeout(strikeTimer);
+          gameState.strikes = 0;
+          gameState.strikeOverlayVisible = false;
+          updateState(null);
+        },
+
+        selectRound(index) {
+          if (index < 0 || index >= gameState.rounds.length) return;
+          stopIntroVideoPlayback();
+          clearWinnerConfetti();
+          gameState.screen = "board";
+          gameState.currentRoundIndex = index;
+          gameState.revealedIndices = [];
+          gameState.potAwardedThisRound = false;
+          gameState.strikes = 0;
+          gameState.strikeOverlayVisible = false;
+          // Question starts hidden until host clicks "Show Question"
+          gameState.showQuestion = false;
+          updateState(null);
+        },
+
+        setRoundMultiplier(mult) {
+          const round = getCurrentRound();
+          if (!round) return;
+          round.multiplier = Number(mult) || 1;
+          safeSetStorage(STORAGE_KEY_ROUNDS, JSON.stringify(gameState.rounds));
+          updateState(null);
+        },
+
+        prevRound() {
+          if (gameState.currentRoundIndex > 0) {
+            this.selectRound(gameState.currentRoundIndex - 1);
+          }
+        },
+
+        nextRound() {
+          if (gameState.currentRoundIndex < gameState.rounds.length - 1) {
+            this.selectRound(gameState.currentRoundIndex + 1);
+          } else {
+            this.setScreen("winner");
+          }
+        },
+
+        toggleQuestion() {
+          gameState.showQuestion = !gameState.showQuestion;
+          updateState(gameState.showQuestion ? "faceoff" : null);
+        },
+
+        awardPot(teamNum) {
+          const pot = calculateRoundPot();
+          if (pot.total <= 0) {
+            showToast("Reveal at least one answer first so there are points in the Round Pot!");
+            return;
+          }
+          if (teamNum === 1) {
+            gameState.team1Score += pot.total;
+          } else {
+            gameState.team2Score += pot.total;
+          }
+          gameState.potAwardedThisRound = true;
+          updateState("win");
+        },
+
+        adjustScore(teamNum, delta) {
+          if (teamNum === 1) {
+            gameState.team1Score = Math.max(0, gameState.team1Score + delta);
+          } else {
+            gameState.team2Score = Math.max(0, gameState.team2Score + delta);
+          }
+          updateState(null);
+        },
+
+        setTeamName(teamNum, name) {
+          const clean = (name || "").trim() || (teamNum === 1 ? "Team 1" : "Team 2");
+          if (teamNum === 1) gameState.team1Name = clean;
+          else gameState.team2Name = clean;
+          updateState(null);
+        },
+
+        playSound(name) {
+          playSoundEffect(name);
+        },
+
+        resetMatch() {
+          stopIntroVideoPlayback();
+          clearWinnerConfetti();
+          gameState.screen = "start";
+          gameState.team1Score = 0;
+          gameState.team2Score = 0;
+          gameState.currentRoundIndex = 0;
+          gameState.revealedIndices = [];
+          gameState.potAwardedThisRound = false;
+          gameState.strikes = 0;
+          gameState.strikeOverlayVisible = false;
+          // Question resets to hidden
+          gameState.showQuestion = false;
+          updateState(null);
+        }
+      };
+
+      window.FeudActions = GameActions;
+
+      // =========================================================================
+      // 6. BULLETPROOF FULLSCREEN (THEATER MODE + NATIVE API) & POP-OUT WINDOW
+      // =========================================================================
+      function toggleCleanFullscreen() {
+        const isCurrentlyTheater = document.body.classList.contains("theater-mode");
+        if (!isCurrentlyTheater) {
+          document.body.classList.add("theater-mode");
+          try {
+            const el = document.documentElement;
+            if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+          } catch (e) {}
+        } else {
+          exitCleanFullscreen();
+        }
+      }
+
+      function exitCleanFullscreen() {
+        document.body.classList.remove("theater-mode");
+        try {
+          if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+          else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+        } catch (e) {}
+      }
+
+      document.addEventListener("fullscreenchange", () => {
+        if (!document.fullscreenElement) document.body.classList.remove("theater-mode");
+      });
+
+      function setViewMode(mode) {
+        gameState.viewMode = mode;
+        const dock = document.getElementById("presenterDock");
+        const btnSplit = document.getElementById("btnModeSplit");
+        const btnAud = document.getElementById("btnModeAudience");
+
+        if (mode === "audience") {
+          dock.classList.add("hidden");
+          btnAud.className = "bg-amber-400 text-slate-950 font-extrabold text-xs px-3 py-2 rounded-xl shadow transition cursor-pointer flex items-center gap-1.5";
+          btnSplit.className = "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs px-3 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5";
+        } else {
+          dock.classList.remove("hidden");
+          btnSplit.className = "bg-amber-400 text-slate-950 font-extrabold text-xs px-3 py-2 rounded-xl shadow transition cursor-pointer flex items-center gap-1.5";
+          btnAud.className = "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs px-3 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5";
+        }
+      }
+
+      function openPopoutPresenterWindow() {
+        let win = null;
+        try {
+          win = window.open("", "HolidayFeudPresenterPopout", "width=780,height=860,menubar=no,toolbar=no,location=no,status=no");
+        } catch (e) {
+          win = null;
+        }
+
+        if (!win || win.closed || typeof win.document === "undefined") {
+          setViewMode("split");
+          showToast("Your browser or preview frame blocked pop-up windows — we've opened the built-in Presenter Panel right here in Split View! (When downloaded locally in Chrome/Edge, the separate pop-out window opens normally.)");
+          return;
+        }
+
+        popupPresenterWin = win;
+        win.document.open();
+        win.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Presenter Control Panel — Holiday Family Feud</title>
+  <script src="https://cdn.tailwindcss.com"><\/script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif; background: #020617; color: #f8fafc; user-select: none; }
+  </style>
+</head>
+<body class="p-4 space-y-3.5">
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between">
+    <div>
+      <h1 class="text-base font-extrabold text-amber-400">🎙️ Presenter Control Window</h1>
+      <p class="text-[11px] text-slate-400">Live connected to Audience Show Board</p>
+    </div>
+    <button onclick="window.opener && window.opener.FeudActions.resetMatch()" class="bg-rose-950 hover:bg-rose-900 text-rose-200 border border-rose-800 text-xs font-bold px-3 py-1.5 rounded-xl cursor-pointer">
+      ↺ Reset Match
+    </button>
+  </div>
+
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2">
+    <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block">Show Stage Flow</span>
+    <div class="grid grid-cols-4 gap-1.5">
+      <button onclick="window.opener.FeudActions.setScreen('start')" class="bg-slate-800 hover:bg-slate-700 text-xs font-bold py-2 rounded-lg cursor-pointer">1. Start</button>
+      <button onclick="window.opener.FeudActions.setScreen('intro')" class="bg-slate-800 hover:bg-slate-700 text-xs font-bold py-2 rounded-lg cursor-pointer">2. Intro Vid</button>
+      <button onclick="window.opener.FeudActions.setScreen('board')" class="bg-slate-800 hover:bg-slate-700 text-xs font-bold py-2 rounded-lg cursor-pointer">3. Board</button>
+      <button onclick="window.opener.FeudActions.setScreen('winner')" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 text-xs font-bold py-2 rounded-lg cursor-pointer">4. 🏆 Finale</button>
+    </div>
+  </div>
+
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">
+    <div class="flex items-center justify-between gap-2">
+      <div id="popRoundTabs" class="flex flex-wrap gap-1.5"></div>
+      <div class="flex items-center gap-1">
+        <button onclick="window.opener.FeudActions.setRoundMultiplier(1)" class="bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded text-xs font-bold cursor-pointer">1x</button>
+        <button onclick="window.opener.FeudActions.setRoundMultiplier(2)" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/50 px-2 py-1 rounded text-xs font-extrabold cursor-pointer">2x</button>
+        <button onclick="window.opener.FeudActions.setRoundMultiplier(3)" class="bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded text-xs font-bold cursor-pointer">3x</button>
+      </div>
+    </div>
+    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-400">Host Script</span>
+        <span id="popQStatusBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">🙈 Hidden</span>
+      </div>
+      <div id="popQuestionText" class="text-sm font-bold text-white"></div>
+      <button id="popToggleQ" onclick="window.opener.FeudActions.toggleQuestion()" class="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black py-2 rounded-lg cursor-pointer">👁️ Show Question</button>
+    </div>
+  </div>
+
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-extrabold uppercase tracking-wider text-slate-400">Answer Key (Click to Reveal)</span>
+      <div class="flex gap-2">
+        <button onclick="window.opener.FeudActions.revealAll()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-lg cursor-pointer">Reveal All</button>
+        <button onclick="window.opener.FeudActions.hideAll()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer">Clear Board</button>
+      </div>
+    </div>
+    <div id="popAnswersList" class="space-y-1.5"></div>
+    <div class="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
+      <div class="text-sm font-bold text-slate-300">Round Pot: <span id="popPot" class="text-xl font-black text-amber-400">0</span></div>
+      <div class="flex gap-2">
+        <button onclick="window.opener.FeudActions.awardPot(1)" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl cursor-pointer">🏆 Award <span id="popAwardT1">Team 1</span></button>
+        <button onclick="window.opener.FeudActions.awardPot(2)" class="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl cursor-pointer">🏆 Award <span id="popAwardT2">Team 2</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-extrabold uppercase tracking-wider text-slate-400">Strikes (Red X)</span>
+        <span id="popStrikeCount" class="text-xs font-bold text-red-400">0 Strikes</span>
+      </div>
+      <div class="grid grid-cols-4 gap-1.5">
+        <button onclick="window.opener.FeudActions.triggerStrike('next')" class="bg-amber-600 hover:bg-amber-500 text-white font-black py-2 rounded-xl text-xs cursor-pointer">+1 X</button>
+        <button onclick="window.opener.FeudActions.triggerStrike(1)" class="bg-red-600 hover:bg-red-500 text-white font-black py-2 rounded-xl text-xs cursor-pointer">✖</button>
+        <button onclick="window.opener.FeudActions.triggerStrike(2)" class="bg-red-600 hover:bg-red-500 text-white font-black py-2 rounded-xl text-xs cursor-pointer">✖✖</button>
+        <button onclick="window.opener.FeudActions.triggerStrike(3)" class="bg-red-700 hover:bg-red-600 text-white font-black py-2 rounded-xl text-xs cursor-pointer">✖✖✖</button>
+      </div>
+      <button onclick="window.opener.FeudActions.clearStrikes()" class="w-full bg-slate-800 hover:bg-slate-700 text-xs font-semibold py-1.5 rounded-lg cursor-pointer">Clear Overlay</button>
+    </div>
+
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2">
+      <span class="text-xs font-extrabold uppercase tracking-wider text-slate-400 block">🔊 Soundboard</span>
+      <div class="grid grid-cols-2 gap-1.5">
+        <button onclick="window.opener.FeudActions.playSound('theme')" class="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-200 text-xs font-bold py-2 rounded-lg cursor-pointer">🎺 Intro Theme</button>
+        <button onclick="window.opener.FeudActions.playSound('faceoff')" class="bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-400/50 text-indigo-200 text-xs font-bold py-2 rounded-lg cursor-pointer">🔔 Face-Off</button>
+        <button onclick="window.opener.FeudActions.playSound('ding')" class="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/50 text-emerald-200 text-xs font-bold py-2 rounded-lg cursor-pointer">✨ Good Answer</button>
+        <button onclick="window.opener.FeudActions.playSound('buzzer')" class="bg-red-500/20 hover:bg-red-500/30 border border-red-400/50 text-red-200 text-xs font-bold py-2 rounded-lg cursor-pointer">🚨 Buzzer</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`);
+        win.document.close();
+
+        setViewMode("audience");
+        syncPopupPresenterWindow();
+        showToast("Presenter Window opened! Drag it to your second screen, then share this Audience Board on Teams.");
+      }
+
+      function syncPopupPresenterWindow() {
+        if (!popupPresenterWin || popupPresenterWin.closed) return;
+        try {
+          const doc = popupPresenterWin.document;
+          const round = getCurrentRound();
+          const pot = calculateRoundPot();
+
+          const tabsEl = doc.getElementById("popRoundTabs");
+          if (tabsEl) {
+            tabsEl.innerHTML = gameState.rounds.map((r, i) => `
+              <button onclick="window.opener.FeudActions.selectRound(${i})" class="px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${
+                i === gameState.currentRoundIndex ? "bg-amber-400 text-slate-950" : "bg-slate-800 text-slate-300"
+              }">${escapeHtml(r.title)} (${r.multiplier}x)</button>
+            `).join("");
+          }
+
+          const qEl = doc.getElementById("popQuestionText");
+          if (qEl) qEl.textContent = round.question;
+
+          const qStatusEl = doc.getElementById("popQStatusBadge");
+          if (qStatusEl) {
+            qStatusEl.textContent = gameState.showQuestion ? "👁️ Visible on Screen" : "🙈 Hidden";
+          }
+
+          const toggleQEl = doc.getElementById("popToggleQ");
+          if (toggleQEl) {
+            toggleQEl.textContent = gameState.showQuestion
+              ? "🙈 Hide Question from Audience"
+              : "👁️ Show Question on Audience Screen";
+          }
+
+          const ansEl = doc.getElementById("popAnswersList");
+          if (ansEl) {
+            ansEl.innerHTML = round.answers.map((ans, idx) => {
+              const rev = gameState.revealedIndices.includes(idx);
+              return `
+                <div class="flex items-center justify-between gap-2 p-2 rounded-xl border ${
+                  rev ? "bg-emerald-950/40 border-emerald-500/60" : "bg-slate-950 border-slate-800"
+                }">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-6 h-6 rounded bg-slate-800 flex items-center justify-center text-xs font-black text-amber-400">#${idx + 1}</span>
+                    <span class="text-sm font-bold text-white truncate">${escapeHtml(ans.text)}</span>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span class="text-xs font-bold text-amber-300">${ans.points} pts</span>
+                    <button onclick="window.opener.FeudActions.toggleAnswer(${idx})" class="px-3 py-1 rounded-lg text-xs font-extrabold cursor-pointer ${
+                      rev ? "bg-slate-700 text-slate-200" : "bg-emerald-600 hover:bg-emerald-500 text-white"
+                    }">${rev ? "Hide" : "Reveal"}</button>
+                  </div>
+                </div>
+              `;
+            }).join("");
+          }
+
+          const potEl = doc.getElementById("popPot");
+          if (potEl) potEl.textContent = pot.total;
+
+          const t1El = doc.getElementById("popAwardT1");
+          if (t1El) t1El.textContent = `${gameState.team1Name} (${gameState.team1Score})`;
+
+          const t2El = doc.getElementById("popAwardT2");
+          if (t2El) t2El.textContent = `${gameState.team2Name} (${gameState.team2Score})`;
+
+          const stEl = doc.getElementById("popStrikeCount");
+          if (stEl) stEl.textContent = `${gameState.strikes} Strike${gameState.strikes === 1 ? "" : "s"}`;
+        } catch (e) {}
+      }
+
+      // =========================================================================
+      // 7. RENDERING ALL 4 AUDIENCE SCREENS & BUILT-IN PRESENTER PANEL
+      // =========================================================================
+      function renderAll() {
+        const round = getCurrentRound();
+        const pot = calculateRoundPot();
+
+        // --- Toggle Active Audience Screen ---
+        const screenStart = document.getElementById("screenStart");
+        const screenIntro = document.getElementById("screenIntroVideo");
+        const screenBoard = document.getElementById("screenGameBoard");
+        const screenWinner = document.getElementById("screenWinner");
+
+        screenStart.classList.toggle("hidden", gameState.screen !== "start");
+        screenIntro.classList.toggle("hidden", gameState.screen !== "intro");
+        screenBoard.classList.toggle("hidden", gameState.screen !== "board");
+        screenWinner.classList.toggle("hidden", gameState.screen !== "winner");
+
+        // Top Stage Status Pill
+        const statusMap = {
+          start: "🎬 Start Screen",
+          intro: "🎥 Intro Video",
+          board: `🎯 ${round.title} (${pot.multiplier}x)`,
+          winner: "🏆 Winner Finale"
+        };
+        document.getElementById("stageStatusBadge").textContent = statusMap[gameState.screen] || "Live Show";
+
+        // Highlight active stage nav buttons in Presenter Dock
+        const stageButtons = {
+          start: document.getElementById("btnStageStart"),
+          intro: document.getElementById("btnStageIntro"),
+          board: document.getElementById("btnStageBoard"),
+          winner: document.getElementById("btnStageWinner")
+        };
+        Object.keys(stageButtons).forEach((k) => {
+          const btn = stageButtons[k];
+          if (!btn) return;
+          if (k === gameState.screen) {
+            btn.className = "stage-nav-btn bg-amber-400 text-slate-950 font-extrabold text-[11px] py-2 px-1.5 rounded-lg shadow cursor-pointer";
+          } else {
+            btn.className = "stage-nav-btn bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[11px] py-2 px-1.5 rounded-lg cursor-pointer";
+          }
+        });
+
+        // --- Screen 1: Start Screen Data ---
+        document.getElementById("audEventSubtitle").textContent = gameState.eventSubtitle || "ANNUAL HOLIDAY PARTY EDITION";
+        document.getElementById("startTeam1Name").textContent = gameState.team1Name;
+        document.getElementById("startTeam2Name").textContent = gameState.team2Name;
+
+        // --- Screen 3: Game Board Data ---
+        const multText = pot.multiplier === 1 ? "SINGLE POINTS" : pot.multiplier === 2 ? "2X DOUBLE POINTS" : `${pot.multiplier}X TRIPLE POINTS`;
+        document.getElementById("audRoundLabel").textContent = `${round.title.toUpperCase()} • ${multText}`;
+        document.getElementById("audTeam1Name").textContent = gameState.team1Name;
+        document.getElementById("audTeam2Name").textContent = gameState.team2Name;
+        document.getElementById("audTeam1Score").textContent = gameState.team1Score;
+        document.getElementById("audTeam2Score").textContent = gameState.team2Score;
+        document.getElementById("audRoundBank").textContent = pot.total;
+
+        // Glowing Multiplier Pill
+        const multPill = document.getElementById("audMultiplierPill");
+        if (pot.multiplier > 1) {
+          multPill.classList.remove("hidden");
+          document.getElementById("audMultiplierValue").textContent = `${pot.multiplier}X`;
+        } else {
+          multPill.classList.add("hidden");
+        }
+
+        // Question Prompt Visibility on Audience Screen (Hidden until Host clicks "Show Question")
+        const qBox = document.getElementById("audQuestionBox");
+        const qText = document.getElementById("audQuestionText");
+        const qCover = document.getElementById("audQuestionHiddenCover");
+
+        if (gameState.showQuestion) {
+          qCover.classList.add("hidden");
+          qText.classList.remove("hidden");
+          qText.textContent = round.question;
+          qBox.className = "w-full rounded-xl px-4 py-3 text-center shadow-inner min-h-[62px] flex items-center justify-center transition-all duration-300 bg-blue-950/90 border-2 border-blue-400/60 question-revealed-anim";
+        } else {
+          qText.classList.add("hidden");
+          qCover.classList.remove("hidden");
+          qBox.className = "w-full rounded-xl px-4 py-3 text-center shadow-inner min-h-[62px] flex items-center justify-center transition-all duration-300 bg-slate-900/95 border-2 border-dashed border-amber-400/50";
+        }
+
+        // 8-Slot Grid
+        const slotOrder = [0, 4, 1, 5, 2, 6, 3, 7];
+        const gridEl = document.getElementById("audBoardGrid");
+        gridEl.innerHTML = slotOrder.map((slotIdx) => {
+          const ans = round.answers[slotIdx];
+          if (!ans) {
+            return `<div class="empty-slot hidden md:block"></div>`;
+          }
+          const rev = gameState.revealedIndices.includes(slotIdx);
+          return `
+            <div class="flip-card ${rev ? "revealed" : ""}">
+              <div class="flip-card-inner">
+                <div class="flip-front">
+                  <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-blue-950/90 border-2 border-amber-300 flex items-center justify-center shadow-lg">
+                    <span class="font-score text-2xl text-white">${slotIdx + 1}</span>
+                  </div>
+                </div>
+                <div class="flip-back">
+                  <div class="px-3.5 sm:px-4 flex-1 truncate">
+                    <span class="font-display text-base sm:text-xl font-bold uppercase tracking-wide text-white drop-shadow">
+                      ${escapeHtml(ans.text)}
+                    </span>
+                  </div>
+                  <div class="h-full w-14 sm:w-16 bg-gradient-to-b from-blue-600 to-blue-800 border-l-2 border-amber-400 flex items-center justify-center shrink-0">
+                    <span class="font-score text-2xl text-amber-300">${ans.points}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        // Strike Overlay
+        const strikeOverlay = document.getElementById("audStrikeOverlay");
+        const strikeContainer = document.getElementById("audStrikeContainer");
+        if (gameState.strikeOverlayVisible && gameState.strikes > 0) {
+          strikeOverlay.classList.remove("hidden");
+          let xHtml = "";
+          for (let i = 0; i < gameState.strikes; i++) {
+            xHtml += `
+              <div class="strike-x-box w-24 h-28 sm:w-40 sm:h-44 bg-gradient-to-b from-red-600 to-red-800 border-8 border-white rounded-3xl flex items-center justify-center">
+                <span class="font-score text-6xl sm:text-8xl text-white leading-none drop-shadow-[0_6px_8px_rgba(0,0,0,0.8)]">X</span>
+              </div>
+            `;
+          }
+          strikeContainer.innerHTML = xHtml;
+        } else {
+          strikeOverlay.classList.add("hidden");
+        }
+
+        // --- Screen 4: Winner Screen Data ---
+        document.getElementById("winT1Label").textContent = gameState.team1Name;
+        document.getElementById("winT2Label").textContent = gameState.team2Name;
+        document.getElementById("winT1FinalScore").textContent = gameState.team1Score;
+        document.getElementById("winT2FinalScore").textContent = gameState.team2Score;
+
+        const winCardT1 = document.getElementById("winCardT1");
+        const winCardT2 = document.getElementById("winCardT2");
+        if (gameState.team1Score > gameState.team2Score) {
+          document.getElementById("winBadgeText").textContent = "HOLIDAY FAMILY FEUD CHAMPIONS!";
+          document.getElementById("winChampionName").textContent = gameState.team1Name;
+          winCardT1.className = "bg-blue-950/90 border-4 border-amber-400 rounded-2xl p-4 shadow-[0_0_30px_rgba(250,204,21,0.4)] scale-105";
+          winCardT2.className = "bg-red-950/60 border-2 border-slate-700 rounded-2xl p-4 opacity-80";
+        } else if (gameState.team2Score > gameState.team1Score) {
+          document.getElementById("winBadgeText").textContent = "HOLIDAY FAMILY FEUD CHAMPIONS!";
+          document.getElementById("winChampionName").textContent = gameState.team2Name;
+          winCardT2.className = "bg-red-950/90 border-4 border-amber-400 rounded-2xl p-4 shadow-[0_0_30px_rgba(250,204,21,0.4)] scale-105";
+          winCardT1.className = "bg-blue-950/60 border-2 border-slate-700 rounded-2xl p-4 opacity-80";
+        } else {
+          document.getElementById("winBadgeText").textContent = "IT'S A HOLIDAY TIE!";
+          document.getElementById("winChampionName").textContent = `${gameState.team1Name} & ${gameState.team2Name}`;
+          winCardT1.className = "bg-blue-950/90 border-4 border-amber-400 rounded-2xl p-4 shadow-xl";
+          winCardT2.className = "bg-red-950/90 border-4 border-amber-400 rounded-2xl p-4 shadow-xl";
+        }
+
+        // --- Built-In Presenter Dock ---
+        const tabsEl = document.getElementById("presRoundTabs");
+        tabsEl.innerHTML = gameState.rounds.map((r, idx) => `
+          <button type="button" data-round-idx="${idx}" class="pres-round-tab px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+            idx === gameState.currentRoundIndex && gameState.screen === "board"
+              ? "bg-amber-400 text-slate-950 shadow"
+              : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
+          }">
+            ${escapeHtml(r.title)} (${r.multiplier}x)
+          </button>
+        `).join("");
+
+        // Highlight active multiplier toggle button (1x / 2x / 3x)
+        document.querySelectorAll(".pres-mult-btn").forEach((btn) => {
+          const m = Number(btn.dataset.mult);
+          if (m === pot.multiplier) {
+            btn.className = "pres-mult-btn px-2.5 py-1 rounded-lg text-xs font-black cursor-pointer bg-amber-400 text-slate-950 shadow";
+          } else {
+            btn.className = "pres-mult-btn px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700";
+          }
+        });
+
+        // Host Script Preview & Prominent Show/Hide Question Button
+        document.getElementById("presQuestionPreview").textContent = round.question;
+        const qBadge = document.getElementById("presQStatusBadge");
+        const toggleBtn = document.getElementById("btnToggleQuestion");
+
+        if (gameState.showQuestion) {
+          qBadge.textContent = "👁️ Visible on Audience Screen";
+          qBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40";
+          toggleBtn.innerHTML = "🙈 Hide Question from Audience";
+          toggleBtn.className = "w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs sm:text-sm font-bold py-2.5 px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-2";
+        } else {
+          qBadge.textContent = "🙈 Hidden from Audience";
+          qBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/40";
+          toggleBtn.innerHTML = "👁️ Show Question on Audience Screen";
+          toggleBtn.className = "w-full bg-amber-400 hover:bg-amber-300 active:scale-[0.99] text-slate-950 text-xs sm:text-sm font-black py-2.5 px-3 rounded-xl shadow-lg transition cursor-pointer flex items-center justify-center gap-2";
+        }
+
+        const ansListEl = document.getElementById("presAnswersList");
+        ansListEl.innerHTML = round.answers.map((ans, idx) => {
+          const rev = gameState.revealedIndices.includes(idx);
+          return `
+            <div class="flex items-center justify-between gap-2 p-2 rounded-xl border transition ${
+              rev ? "bg-emerald-950/40 border-emerald-500/60" : "bg-slate-900 border-slate-800"
+            }">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-6 h-6 rounded-md bg-slate-800 border border-slate-700 flex items-center justify-center font-black text-xs text-amber-400 shrink-0">
+                  #${idx + 1}
+                </span>
+                <span class="font-bold text-white truncate text-xs sm:text-sm">${escapeHtml(ans.text)}</span>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="font-mono font-bold text-amber-300 text-xs">${ans.points}p</span>
+                <button type="button" data-ans-idx="${idx}" class="pres-reveal-btn px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                  rev
+                    ? "bg-slate-700 hover:bg-slate-600 text-slate-200"
+                    : "bg-emerald-600 hover:bg-emerald-500 text-white shadow"
+                }">
+                  ${rev ? "Hide" : "Reveal"}
+                </button>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        document.getElementById("presRoundBank").textContent = pot.total;
+        document.getElementById("presMultNote").textContent = `(${pot.raw} × ${pot.multiplier}x)`;
+        document.getElementById("lblAwardT1").textContent = gameState.team1Name;
+        document.getElementById("lblAwardT2").textContent = gameState.team2Name;
+
+        const strikeBadge = document.getElementById("presStrikeBadge");
+        strikeBadge.textContent = `${gameState.strikes} Strike${gameState.strikes === 1 ? "" : "s"}`;
+        strikeBadge.className = gameState.strikes > 0
+          ? "text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-600 text-white"
+          : "text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300";
+
+        const inpT1 = document.getElementById("inpTeam1Name");
+        const inpT2 = document.getElementById("inpTeam2Name");
+        if (document.activeElement !== inpT1) inpT1.value = gameState.team1Name;
+        if (document.activeElement !== inpT2) inpT2.value = gameState.team2Name;
+
+        document.getElementById("presT1Score").textContent = gameState.team1Score;
+        document.getElementById("presT2Score").textContent = gameState.team2Score;
+      }
+
+      // =========================================================================
+      // 8. INTRO VIDEO MODAL & QUESTION EDITOR MODAL
+      // =========================================================================
+      let pendingVideoBlobUrl = "";
+      let pendingVideoFileName = "";
+
+      function openVideoModal() {
+        document.getElementById("inpEventSubtitle").value = gameState.eventSubtitle || "";
+        document.getElementById("inpVideoUrl").value = gameState.introVideoUrl || "";
+        document.getElementById("chkEnableIntroStage").checked = gameState.enableIntroStage;
+        const lblFile = document.getElementById("lblSelectedFile");
+        if (gameState.introVideoFileName) {
+          lblFile.textContent = `Loaded file: ${gameState.introVideoFileName}`;
+          lblFile.classList.remove("hidden");
+        } else {
+          lblFile.classList.add("hidden");
+        }
+        document.getElementById("videoModal").classList.remove("hidden");
+      }
+
+      function closeVideoModal() {
+        document.getElementById("videoModal").classList.add("hidden");
+      }
+
+      let draftRounds = [];
+
+      function openQuestionEditor() {
+        draftRounds = JSON.parse(JSON.stringify(gameState.rounds));
+        renderEditorRounds();
+        document.getElementById("editorModal").classList.remove("hidden");
+      }
+
+      function closeQuestionEditor() {
+        document.getElementById("editorModal").classList.add("hidden");
+      }
+
+      function renderEditorRounds() {
+        const container = document.getElementById("editorRoundsContainer");
+        container.innerHTML = draftRounds.map((round, rIdx) => {
+          const slots = Array.from({ length: 8 }, (_, aIdx) => round.answers[aIdx] || { text: "", points: "" });
+          return `
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3" data-ridx="${rIdx}">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+                  <input type="text" value="${escapeHtml(round.title)}" data-field="title"
+                    class="ed-round-input bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-bold text-amber-300 w-36" placeholder="Round Title" />
+                  <select data-field="multiplier"
+                    class="ed-round-input bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-white">
+                    <option value="1" ${round.multiplier === 1 ? "selected" : ""}>1x Single Points</option>
+                    <option value="2" ${round.multiplier === 2 ? "selected" : ""}>2x Double Points</option>
+                    <option value="3" ${round.multiplier === 3 ? "selected" : ""}>3x Triple Points</option>
+                  </select>
+                </div>
+                ${draftRounds.length > 1 ? `
+                  <button type="button" data-remove-ridx="${rIdx}" class="ed-remove-round text-xs text-rose-400 hover:text-rose-300 font-semibold px-2 py-1 cursor-pointer">
+                    Remove Round
+                  </button>
+                ` : ""}
+              </div>
+
+              <div>
+                <label class="text-xs text-slate-400 block mb-1">Survey Question</label>
+                <input type="text" value="${escapeHtml(round.question)}" data-field="question"
+                  class="ed-round-input w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm font-semibold text-white" placeholder="Enter your survey question..." />
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                ${slots.map((slot, aIdx) => `
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-500 w-5">#${aIdx + 1}</span>
+                    <input type="text" value="${escapeHtml(slot.text)}" data-aidx="${aIdx}" data-afield="text"
+                      placeholder="Answer ${aIdx + 1}" class="ed-ans-input flex-1 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white" />
+                    <input type="number" min="1" max="100" value="${slot.points}" data-aidx="${aIdx}" data-afield="points"
+                      placeholder="Pts" class="ed-ans-input w-16 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-amber-300 font-bold text-center" />
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function saveEditorRounds() {
+        const cleaned = draftRounds.map((r, idx) => {
+          const validAnswers = (r.answers || [])
+            .filter((a) => a && a.text && a.text.trim() !== "")
+            .map((a) => ({
+              text: a.text.trim(),
+              points: Math.max(1, Number(a.points) || 10)
+            }));
+
+          return {
+            title: (r.title || "").trim() || `Round ${idx + 1}`,
+            multiplier: Number(r.multiplier) || 1,
+            question: (r.question || "").trim() || "Holiday Survey Question",
+            answers: validAnswers.length > 0 ? validAnswers : [{ text: "Sample Answer", points: 50 }]
+          };
+        });
+
+        gameState.rounds = cleaned;
+        gameState.currentRoundIndex = 0;
+        gameState.revealedIndices = [];
+        gameState.potAwardedThisRound = false;
+        gameState.strikes = 0;
+        gameState.strikeOverlayVisible = false;
+        gameState.showQuestion = false;
+
+        safeSetStorage(STORAGE_KEY_ROUNDS, JSON.stringify(cleaned));
+        updateState(null);
+        closeQuestionEditor();
+        showToast("Your custom rounds & questions have been saved!");
+      }
+
+      // =========================================================================
+      // 9. TOAST, SNOWFLAKES & CONFETTI UTILITIES
+      // =========================================================================
+      let toastTimeout = null;
+      function showToast(msg) {
+        const banner = document.getElementById("toastBanner");
+        const textEl = document.getElementById("toastMessage");
+        if (!banner || !textEl) return;
+        textEl.textContent = msg;
+        banner.classList.remove("hidden");
+        if (toastTimeout) clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+          banner.classList.add("hidden");
+        }, 7000);
+      }
+
+      function escapeHtml(str) {
+        return String(str || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function spawnSnowflakes() {
+        const container = document.getElementById("snowContainer");
+        if (!container) return;
+        const flakes = ["❄", "❅", "❆", "•"];
+        for (let i = 0; i < 20; i++) {
+          const el = document.createElement("div");
+          el.className = "snowflake";
+          el.textContent = flakes[i % flakes.length];
+          el.style.left = Math.random() * 100 + "vw";
+          el.style.fontSize = (10 + Math.random() * 14) + "px";
+          el.style.animationDuration = (8 + Math.random() * 12) + "s";
+          el.style.animationDelay = (-Math.random() * 15) + "s";
+          container.appendChild(el);
+        }
+      }
+
+      function spawnWinnerConfetti() {
+        const container = document.getElementById("confettiContainer");
+        if (!container) return;
+        container.innerHTML = "";
+        const colors = ["#facc15", "#ef4444", "#22c55e", "#3b82f6", "#f472b6", "#ffffff"];
+        for (let i = 0; i < 65; i++) {
+          const piece = document.createElement("div");
+          piece.className = "confetti-piece";
+          piece.style.left = Math.random() * 100 + "vw";
+          piece.style.backgroundColor = colors[i % colors.length];
+          piece.style.borderRadius = i % 2 === 0 ? "50%" : "2px";
+          piece.style.animationDuration = (2.8 + Math.random() * 3.5) + "s";
+          piece.style.animationDelay = (Math.random() * 1.5) + "s";
+          container.appendChild(piece);
+        }
+      }
+
+      function clearWinnerConfetti() {
+        const container = document.getElementById("confettiContainer");
+        if (container) container.innerHTML = "";
+      }
+
+      // =========================================================================
+      // 10. BIND ALL EVENT LISTENERS CLEANLY
+      // =========================================================================
+      function bindEvents() {
+        // Top Toolbar Buttons
+        document.getElementById("btnModeSplit").addEventListener("click", () => setViewMode("split"));
+        document.getElementById("btnModeAudience").addEventListener("click", () => setViewMode("audience"));
+        document.getElementById("btnPopoutPresenter").addEventListener("click", openPopoutPresenterWindow);
+        document.getElementById("btnToggleFullscreen").addEventListener("click", toggleCleanFullscreen);
+        document.getElementById("btnExitTheater").addEventListener("click", exitCleanFullscreen);
+        document.getElementById("btnCloseToast").addEventListener("click", () => {
+          document.getElementById("toastBanner").classList.add("hidden");
+        });
+
+        // Audience Screen Stage Action Buttons
+        document.getElementById("btnAudStartShow").addEventListener("click", () => GameActions.startShow());
+        document.getElementById("btnAudSkipIntro").addEventListener("click", () => GameActions.selectRound(0));
+        document.getElementById("btnFallbackPlayTheme").addEventListener("click", () => GameActions.playSound("theme"));
+        document.getElementById("btnWinReplayFanfare").addEventListener("click", () => GameActions.playSound("win"));
+        document.getElementById("btnWinBackToBoard").addEventListener("click", () => GameActions.setScreen("board"));
+
+        // Auto-advance from HTML5 Intro Video when finished
+        document.getElementById("introHtml5Video").addEventListener("ended", () => {
+          GameActions.selectRound(0);
+        });
+
+        // Presenter Stage Navigation Buttons
+        document.getElementById("btnStageStart").addEventListener("click", () => GameActions.setScreen("start"));
+        document.getElementById("btnStageIntro").addEventListener("click", () => GameActions.setScreen("intro"));
+        document.getElementById("btnStageBoard").addEventListener("click", () => GameActions.setScreen("board"));
+        document.getElementById("btnStageWinner").addEventListener("click", () => GameActions.setScreen("winner"));
+
+        // Intro Video Setup Modal
+        document.getElementById("btnOpenVideoSetup").addEventListener("click", openVideoModal);
+        document.getElementById("btnCloseVideoX").addEventListener("click", closeVideoModal);
+        document.getElementById("btnCancelVideo").addEventListener("click", closeVideoModal);
+
+        document.getElementById("inpVideoFile").addEventListener("change", (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (file) {
+            if (pendingVideoBlobUrl) URL.revokeObjectURL(pendingVideoBlobUrl);
+            pendingVideoBlobUrl = URL.createObjectURL(file);
+            pendingVideoFileName = file.name;
+            const lblFile = document.getElementById("lblSelectedFile");
+            lblFile.textContent = `Selected: ${file.name}`;
+            lblFile.classList.remove("hidden");
+          }
+        });
+
+        document.getElementById("btnClearVideo").addEventListener("click", () => {
+          pendingVideoBlobUrl = "";
+          pendingVideoFileName = "";
+          gameState.introVideoBlobUrl = "";
+          gameState.introVideoFileName = "";
+          gameState.introVideoUrl = "";
+          document.getElementById("inpVideoUrl").value = "";
+          document.getElementById("inpVideoFile").value = "";
+          document.getElementById("lblSelectedFile").classList.add("hidden");
+          updateState(null);
+          showToast("Intro video cleared.");
+        });
+
+        document.getElementById("btnSaveVideo").addEventListener("click", () => {
+          gameState.eventSubtitle = document.getElementById("inpEventSubtitle").value.trim() || "ANNUAL HOLIDAY PARTY EDITION";
+          gameState.introVideoUrl = document.getElementById("inpVideoUrl").value.trim();
+          gameState.enableIntroStage = document.getElementById("chkEnableIntroStage").checked;
+          if (pendingVideoBlobUrl) {
+            gameState.introVideoBlobUrl = pendingVideoBlobUrl;
+            gameState.introVideoFileName = pendingVideoFileName;
+          }
+          updateState(null);
+          closeVideoModal();
+          showToast("Intro video & Start Screen settings saved!");
+        });
+
+        // Presenter Dock Header & Navigation
+        document.getElementById("btnOpenEditor").addEventListener("click", openQuestionEditor);
+        document.getElementById("btnResetMatch").addEventListener("click", () => {
+          document.getElementById("confirmTitle").textContent = "Reset Entire Match?";
+          document.getElementById("confirmMessage").textContent = "This resets both team scores to 0 and returns to the Start Screen (your custom questions and video settings will be kept).";
+          document.getElementById("confirmModal").classList.remove("hidden");
+        });
+
+        document.getElementById("btnCancelConfirm").addEventListener("click", () => {
+          document.getElementById("confirmModal").classList.add("hidden");
+        });
+        document.getElementById("btnAcceptConfirm").addEventListener("click", () => {
+          document.getElementById("confirmModal").classList.add("hidden");
+          GameActions.resetMatch();
+        });
+
+        document.getElementById("btnPrevRound").addEventListener("click", () => GameActions.prevRound());
+        document.getElementById("btnNextRound").addEventListener("click", () => GameActions.nextRound());
+        document.getElementById("btnToggleQuestion").addEventListener("click", () => GameActions.toggleQuestion());
+
+        // Multiplier Quick Toggle Buttons (1x / 2x / 3x)
+        document.querySelectorAll(".pres-mult-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            GameActions.setRoundMultiplier(Number(btn.dataset.mult));
+          });
+        });
+
+        // Event Delegation for Dynamic Round Tabs & Reveal Buttons
+        document.getElementById("presRoundTabs").addEventListener("click", (e) => {
+          const btn = e.target.closest(".pres-round-tab");
+          if (btn) GameActions.selectRound(Number(btn.dataset.roundIdx));
+        });
+
+        document.getElementById("presAnswersList").addEventListener("click", (e) => {
+          const btn = e.target.closest(".pres-reveal-btn");
+          if (btn) GameActions.toggleAnswer(Number(btn.dataset.ansIdx));
+        });
+
+        // Board Bulk Actions & Award Pot
+        document.getElementById("btnRevealAll").addEventListener("click", () => GameActions.revealAll());
+        document.getElementById("btnHideAll").addEventListener("click", () => GameActions.hideAll());
+        document.getElementById("btnAwardTeam1").addEventListener("click", () => GameActions.awardPot(1));
+        document.getElementById("btnAwardTeam2").addEventListener("click", () => GameActions.awardPot(2));
+
+        // Strikes
+        document.getElementById("btnStrikeNext").addEventListener("click", () => GameActions.triggerStrike("next"));
+        document.getElementById("btnStrike1").addEventListener("click", () => GameActions.triggerStrike(1));
+        document.getElementById("btnStrike2").addEventListener("click", () => GameActions.triggerStrike(2));
+        document.getElementById("btnStrike3").addEventListener("click", () => GameActions.triggerStrike(3));
+        document.getElementById("btnClearStrikes").addEventListener("click", () => GameActions.clearStrikes());
+
+        // Team Names & Scores
+        document.getElementById("inpTeam1Name").addEventListener("input", (e) => GameActions.setTeamName(1, e.target.value));
+        document.getElementById("inpTeam2Name").addEventListener("input", (e) => GameActions.setTeamName(2, e.target.value));
+        document.getElementById("btnT1Minus").addEventListener("click", () => GameActions.adjustScore(1, -10));
+        document.getElementById("btnT1Plus").addEventListener("click", () => GameActions.adjustScore(1, 10));
+        document.getElementById("btnT2Minus").addEventListener("click", () => GameActions.adjustScore(2, -10));
+        document.getElementById("btnT2Plus").addEventListener("click", () => GameActions.adjustScore(2, 10));
+
+        // Soundboard
+        document.getElementById("btnSndTheme").addEventListener("click", () => GameActions.playSound("theme"));
+        document.getElementById("btnSndFaceoff").addEventListener("click", () => GameActions.playSound("faceoff"));
+        document.getElementById("btnSndDing").addEventListener("click", () => GameActions.playSound("ding"));
+        document.getElementById("btnSndBuzzer").addEventListener("click", () => GameActions.playSound("buzzer"));
+        document.getElementById("btnSndWin").addEventListener("click", () => GameActions.playSound("win"));
+
+        // Question Editor Modal Events
+        document.getElementById("btnCloseEditorX").addEventListener("click", closeQuestionEditor);
+        document.getElementById("btnCancelEditor").addEventListener("click", closeQuestionEditor);
+        document.getElementById("btnSaveEditor").addEventListener("click", saveEditorRounds);
+
+        document.getElementById("btnAddRound").addEventListener("click", () => {
+          const nextNum = draftRounds.length + 1;
+          draftRounds.push({
+            title: `Round ${nextNum}`,
+            multiplier: nextNum === 2 ? 2 : nextNum >= 3 ? 3 : 1,
+            question: "Enter your holiday survey question here...",
+            answers: [
+              { text: "Top Answer", points: 40 },
+              { text: "Second Answer", points: 30 },
+              { text: "Third Answer", points: 20 },
+              { text: "Fourth Answer", points: 10 }
+            ]
+          });
+          renderEditorRounds();
+        });
+
+        document.getElementById("btnRestoreDefaults").addEventListener("click", () => {
+          draftRounds = JSON.parse(JSON.stringify(DEFAULT_ROUNDS));
+          renderEditorRounds();
+        });
+
+        const edContainer = document.getElementById("editorRoundsContainer");
+        edContainer.addEventListener("input", (e) => {
+          const card = e.target.closest("[data-ridx]");
+          if (!card) return;
+          const rIdx = Number(card.dataset.ridx);
+
+          if (e.target.classList.contains("ed-round-input")) {
+            const field = e.target.dataset.field;
+            draftRounds[rIdx][field] = field === "multiplier" ? Number(e.target.value) : e.target.value;
+          } else if (e.target.classList.contains("ed-ans-input")) {
+            const aIdx = Number(e.target.dataset.aidx);
+            const afield = e.target.dataset.afield;
+            while (draftRounds[rIdx].answers.length <= aIdx) {
+              draftRounds[rIdx].answers.push({ text: "", points: 0 });
+            }
+            draftRounds[rIdx].answers[aIdx][afield] = afield === "points" ? (Number(e.target.value) || 0) : e.target.value;
+          }
+        });
+
+        edContainer.addEventListener("click", (e) => {
+          const rmBtn = e.target.closest(".ed-remove-round");
+          if (rmBtn) {
+            draftRounds.splice(Number(rmBtn.dataset.removeRidx), 1);
+            renderEditorRounds();
+          }
+        });
+
+        // Keyboard Shortcuts (Ignored while typing in inputs)
+        document.addEventListener("keydown", (e) => {
+          const tag = (e.target && e.target.tagName || "").toUpperCase();
+          if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+          if (e.key >= "1" && e.key <= "8") {
+            GameActions.toggleAnswer(Number(e.key) - 1);
+          } else if (e.key === "q" || e.key === "Q") {
+            GameActions.toggleQuestion();
+          } else if (e.key === "x" || e.key === "X") {
+            GameActions.triggerStrike("next");
+          } else if (e.key === "f" || e.key === "F") {
+            toggleCleanFullscreen();
+          } else if (e.key === "Escape") {
+            exitCleanFullscreen();
+          }
+        });
+      }
+
+      // Initialize immediately
+      bindEvents();
+      spawnSnowflakes();
+      setViewMode(gameState.viewMode || "split");
+      renderAll();
+    })();
+  </script>
+</body>
+</html>
